@@ -28,7 +28,7 @@ description = `
 characters = [];
 
 const sequences = [
-  ['b', 'b', 'b', 'r', 'r']
+  ['cyan', 'cyan', 'cyan', 'red', 'yellow']
 ];
 
 const G = {
@@ -41,7 +41,9 @@ const G = {
   HITBOX_SIZE: 10,
   
   HOLD_DELAY : 20,
-  DEFAULT_SPEED: 3
+  DEFAULT_SPEED: 3,
+  
+  BULLET_PER_SEQ: 5
 }
 
 options = {
@@ -58,15 +60,22 @@ function update() {
       pos: vec(G.WIDTH * 0.1, G.HEIGHT * 0.5),
       size: vec(G.PLAYER_WIDTH, G.PLAYER_HEIGHT),
       delayCounter: 0,
-      isCyan: true
+      color: "cyan"
     };
     
-    // HitBox Init
-    hitbox = {
-      pos: vec(G.WIDTH + G.HITBOX_SIZE, G.HEIGHT * 0.5),
-      size: vec(G.HITBOX_SIZE, G.HITBOX_SIZE),
-      isCyan: true
-    }
+    hitbox = times(G.BULLET_PER_SEQ, (i) => {
+      return {
+        pos: vec(G.WIDTH + G.HITBOX_SIZE, G.HEIGHT * 0.5),
+        size: vec(G.HITBOX_SIZE, G.HITBOX_SIZE),
+        index: i,
+        color: "cyan",
+        isReadyForQueue : false,
+        isReleased: false
+      }
+    });
+    
+    numFired = 0;
+    isNewSeq = true;
     // Alternating Bool every update
     isTick = true;
   }
@@ -77,7 +86,7 @@ function update() {
   // update input is pressed
   if (input.isPressed) {
     // animation: Bop (expand when hold)
-    if(player.size.x <= 11) {
+    if(player.size.y <= 105) {
       player.size.x += 0.1
       player.size.y += 0.5
     } else {
@@ -100,10 +109,10 @@ function update() {
   // update when input is released
   if (input.isJustReleased) {
     // color switch
-    if (player.isCyan) {
-      player.isCyan = false
+    if (player.color == "cyan") {
+      player.color = "red"
     } else {
-      player.isCyan = true
+      player.color = "cyan"
     }
     
     // player animation recovery (reset size and position)
@@ -116,21 +125,84 @@ function update() {
   
   
   // UPDATE for hitbox
+  hitbox.forEach((h) => {
+    // Fire counter
+    seq = sequences[Math.floor(Math.random() * sequences.length)]
+    
+    h.color = seq[h.index]
+    
+    if(G.BULLET_PER_SEQ == numFired) {
+      numFired = 0;
+    }
+    
+    if(h.index == numFired) {
+      h.isReadyForQueue = true
+    }
+    
+    if (h.isReadyForQueue) {
+      if(h.pos.x > G.WIDTH * 0.95) {
+        h.pos.x -= G.DEFAULT_SPEED
+        h.size.x = G.HITBOX_SIZE
+        h.isSlowedDown = false;
+      } else {
+        h.isReadyForQueue = false
+        h.isReleased = true
+      }
+    }
+    
+    if(h.isReleased) {
+      if(h.pos.x < G.WIDTH * 0.9) {
+        h.isSlowedDown = false;
+        h.pos.x -= G.DEFAULT_SPEED
+        h.size.x = G.HITBOX_SIZE
+      } else {
+        h.isSlowedDown = true;
+        h.pos.x -= G.DEFAULT_SPEED * 0.1
+        h.size.x = G.HITBOX_SIZE * 0.5
+      }
+    }
+    
+    if(h.pos.x < G.WIDTH * 0.7) {
+      numFired = h.index + 1
+    }
+    
+    
+    //reset hitbox
+    if(h.pos.x <= player.pos.x) {
+      h.pos.x = G.WIDTH + h.size.x
+      addScore(100 + h.index * 20)
+      player.isHit = true;
+      h.isReadyForQueue = false;
+      h.isReleased = false;
+      //numFired += 1
+    }
+    
+    // RENDERER 
+    //renderer for hitbox
+    color(h.color);
+    
+    box(h.pos.x, h.pos.y, h.size.x, h.size.y)
+    
+    
+    if(!h.isSlowedDown) {
+      color(h.color);
+            
+      particle(
+          h.pos.x + 2, // x coordinate
+          h.pos.y, // y coordinate
+          4, // The number of particles
+          1, // The speed of the particles
+          0, // The emitting angle
+          PI/2  // The emitting width
+      );
+    }
+    
+  })
   // define slowdown boundaries
-  hitbox.isSlowedDown = hitbox.pos.x >= G.WIDTH * 0.9 && hitbox.pos.x <= G.WIDTH * 0.95;
   // slowdown behavior
-  if(hitbox.isSlowedDown) {
-    hitbox.pos.x -= G.DEFAULT_SPEED * 0.1;
-    hitbox.size.x = G.HITBOX_SIZE * 0.5
-  } else {
-    hitbox.pos.x -= G.DEFAULT_SPEED;
-    hitbox.size.x = G.HITBOX_SIZE
-  }
+  
   // hitbox reset 
-  if(hitbox.pos.x <= player.pos.x) {
-    hitbox.pos.x = G.WIDTH + hitbox.size.x
-    player.isHit = true;
-  }
+  
   
   // UPDATE for player
   if(player.isHit) {
@@ -145,62 +217,26 @@ function update() {
   if(player.size.x > G.PLAYER_WIDTH) {
     player.size.x = G.PLAYER_WIDTH
   }
-  // RENDERER 
-  //renderer for hitbox
-  if(hitbox.isCyan) {
-    color("cyan");
-  } else {
-    color("red");
-  }
   
-  box(hitbox.pos.x, hitbox.pos.y, hitbox.size.x, hitbox.size.y)
-  
-  // renderer for player
   if(player.delayCounter >= G.HOLD_DELAY) {
     // yellow when hold
-    color("yellow");
-    box(player.pos.x, player.pos.y, player.size.x, player.size.y);
-  } else {
-    // Color renderer (cyan / red)
-    if(player.isCyan) {
-      color("cyan");
-      // Player collision box and game over condition
-      if(box(player.pos.x, player.pos.y, player.size.x, player.size.y).isColliding.rect.red) {
-        end();
-      }
-    } else {
-      color("red");
-      // Player collision box and game over condition
-      if(box(player.pos.x, player.pos.y, player.size.x, player.size.y).isColliding.rect.cyan) {
-        end();
-      }
-    }
+    player.color = "yellow"
+  }
+  
+  
+  // renderer for player
+  color(player.color)
+  const cyanDontMatch = box(player.pos.x, player.pos.y, player.size.x, player.size.y).isColliding.rect.cyan && player.color != "cyan";
+  const redDontMatch = box(player.pos.x, player.pos.y, player.size.x, player.size.y).isColliding.rect.red && player.color != "red";
+  const yellowDontMatch = box(player.pos.x, player.pos.y, player.size.x, player.size.y).isColliding.rect.yellow && player.color != "yellow";
+  
+  if(cyanDontMatch || redDontMatch || yellowDontMatch) {
+    end();
   }
   
   // Particles
-  if(!hitbox.isSlowedDown) {
-    if(hitbox.isCyan) {
-      color("cyan");
-    } else {
-      color("red");
-    }
-    
-    particle(
-        hitbox.pos.x + 2, // x coordinate
-        hitbox.pos.y, // y coordinate
-        4, // The number of particles
-        1, // The speed of the particles
-        -PI, // The emitting angle
-        PI/2  // The emitting width
-    );
-  }
-  
   if(player.size.x < G.PLAYER_WIDTH) {
-    if(player.isCyan) {
-      color("cyan")
-    } else {
-      color("red")
-    }
+    color(player.color)
     particle(
       player.pos.x + 5, // x coordinate
       player.pos.y, // y coordinate
