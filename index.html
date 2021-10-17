@@ -22,13 +22,22 @@
 <script>
 title = "SWITCH";
 
-description = `
+description = `[PRESS] - CYAN / RED
+[HOLD] - YELLOW
 `;
 
 characters = [];
 
 const sequences = [
-  ['cyan', 'cyan', 'cyan', 'red', 'yellow']
+  ['cyan', 'cyan', 'cyan', 'red', 'yellow'],
+  ['red', 'red', 'red', 'cyan', 'yellow'],
+  ['cyan', 'cyan', 'cyan', 'cyan', 'cyan'],
+  ['red', 'red', 'red', 'red', 'red'],
+  ['cyan', 'cyan', 'cyan', 'red', 'cyan'],
+  ['red', 'red', 'red', 'cyan', 'red'],
+  ['yellow', 'yellow', 'yellow', 'yellow', 'yellow'],
+  ['yellow', 'yellow', 'cyan', 'yellow', 'yellow'],
+  ['yellow', 'yellow', 'red', 'yellow', 'yellow']
 ];
 
 const G = {
@@ -75,7 +84,8 @@ function update() {
     });
     
     numFired = 0;
-    isNewSeq = true;
+    needNewSeq = true;
+    timer = 0;
     // Alternating Bool every update
     isTick = true;
   }
@@ -127,74 +137,81 @@ function update() {
   // UPDATE for hitbox
   hitbox.forEach((h) => {
     // Fire counter
-    seq = sequences[Math.floor(Math.random() * sequences.length)]
-    
-    h.color = seq[h.index]
-    
-    if(G.BULLET_PER_SEQ == numFired) {
+    if (needNewSeq && timer < 500) {
+      timer += 1;
       numFired = 0;
-    }
-    
-    if(h.index == numFired) {
-      h.isReadyForQueue = true
-    }
-    
-    if (h.isReadyForQueue) {
-      if(h.pos.x > G.WIDTH * 0.95) {
-        h.pos.x -= G.DEFAULT_SPEED
-        h.size.x = G.HITBOX_SIZE
-        h.isSlowedDown = false;
-      } else {
-        h.isReadyForQueue = false
-        h.isReleased = true
+    } else {
+      if(needNewSeq) {
+        seq = sequences[Math.floor(Math.random() * sequences.length)]
+        needNewSeq = false
       }
-    }
-    
-    if(h.isReleased) {
-      if(h.pos.x < G.WIDTH * 0.9) {
-        h.isSlowedDown = false;
-        h.pos.x -= G.DEFAULT_SPEED
-        h.size.x = G.HITBOX_SIZE
-      } else {
-        h.isSlowedDown = true;
-        h.pos.x -= G.DEFAULT_SPEED * 0.1
-        h.size.x = G.HITBOX_SIZE * 0.5
+      
+      h.color = seq[h.index]
+      if(h.index == numFired) {
+        h.isReadyForQueue = true
       }
-    }
-    
-    if(h.pos.x < G.WIDTH * 0.7) {
-      numFired = h.index + 1
-    }
-    
-    
-    //reset hitbox
-    if(h.pos.x <= player.pos.x) {
-      h.pos.x = G.WIDTH + h.size.x
-      addScore(100 + h.index * 20)
-      player.isHit = true;
-      h.isReadyForQueue = false;
-      h.isReleased = false;
-      //numFired += 1
-    }
-    
-    // RENDERER 
-    //renderer for hitbox
-    color(h.color);
-    
-    box(h.pos.x, h.pos.y, h.size.x, h.size.y)
-    
-    
-    if(!h.isSlowedDown) {
+      
+      if (h.isReadyForQueue) {
+        if(h.pos.x > G.WIDTH * 0.95) {
+          h.pos.x -= G.DEFAULT_SPEED
+          h.size.x = G.HITBOX_SIZE
+          h.isSlowedDown = false;
+        } else {
+          h.isReadyForQueue = false
+          h.isReleased = true
+        }
+      }
+      
+      if(h.isReleased) {
+        if(h.pos.x < G.WIDTH * 0.9) {
+          h.isSlowedDown = false;
+          h.pos.x -= G.DEFAULT_SPEED
+          h.size.x = G.HITBOX_SIZE
+        } else {
+          h.isSlowedDown = true;
+          h.pos.x -= G.DEFAULT_SPEED * 0.1
+          h.size.x = G.HITBOX_SIZE * 0.5
+        }
+      }
+      
+      if(h.pos.x < G.WIDTH * 0.7) {
+        numFired = h.index + 1
+      }
+      
+      
+      //reset hitbox
+      if(h.pos.x <= player.pos.x) {
+        h.pos.x = G.WIDTH + h.size.x
+        addScore(100 + h.index * 20)
+        player.isHit = true;
+        h.isReadyForQueue = false;
+        h.isReleased = false;
+        if(G.BULLET_PER_SEQ == numFired) {
+          needNewSeq = true;
+          timer = 0;
+        }
+        //numFired += 1
+      }
+      
+      // RENDERER 
+      //renderer for hitbox
       color(h.color);
-            
-      particle(
-          h.pos.x + 2, // x coordinate
-          h.pos.y, // y coordinate
-          4, // The number of particles
-          1, // The speed of the particles
-          0, // The emitting angle
-          PI/2  // The emitting width
-      );
+      
+      box(h.pos.x, h.pos.y, h.size.x, h.size.y)
+      
+      
+      if(!h.isSlowedDown) {
+        color(h.color);
+              
+        particle(
+            h.pos.x + 2, // x coordinate
+            h.pos.y, // y coordinate
+            4, // The number of particles
+            1, // The speed of the particles
+            0, // The emitting angle
+            PI/2  // The emitting width
+        );
+      }
     }
     
   })
