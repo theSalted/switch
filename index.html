@@ -20,17 +20,110 @@
     <script src="https://abagames.github.io/crisp-game-lib/bundle.js"></script>
 
 <script>
-title = "";
+title = "SWITCH";
 
 description = `
 `;
 
 characters = [];
 
-options = {};
+const G = {
+  WIDTH: 200,
+  HEIGHT: 200,
+  
+  PLAYER_WIDTH: 20,
+  PLAYER_HEIGHT: 100,
+  HOLD_DELAY : 20,
+  DEFAULT_SPEED: 1
+}
+
+options = {
+  theme : "crt",
+  viewSize: {x: G.WIDTH, y: G.HEIGHT}
+};
 
 function update() {
+  // INIT
   if (!ticks) {
+    
+    // PLAYER init
+    player = {
+      pos: vec(G.WIDTH * 0.2, G.HEIGHT * 0.5),
+      size: vec(G.PLAYER_WIDTH, G.PLAYER_HEIGHT),
+      delayCounter: 0,
+      isCyan: false
+    };
+    
+    // Alternating Bool every update
+    isTick = true;
+  }
+  
+  // UPDATE STARTs HERE
+  
+  // UPDATE for input
+  // update input is pressed
+  if (input.isPressed) {
+    // animation: Bop (expand when hold)
+    if(player.size.x <= 21) {
+      player.size.x += 0.1
+      player.size.y += 0.5
+    } else {
+      player.size.x -= 0.05
+      player.size.y -= 0.25
+    }
+    
+    // animation: Shake
+    if(isTick) {
+      player.pos.x += 1
+      player.pos.y += 1
+    } else {
+      player.pos.x -= 1
+      player.pos.y -= 1
+    }
+    
+    // delay count up
+    player.delayCounter += 1;
+  }
+  // update when input is released
+  if (input.isJustReleased) {
+    // color switch
+    if (player.isCyan) {
+      player.isCyan = false
+    } else {
+      player.isCyan = true
+    }
+    
+    // player animation recovery (reset size and position)
+    player.size = vec(G.PLAYER_WIDTH, G.PLAYER_HEIGHT)
+    player.pos = vec(G.WIDTH * 0.2, G.HEIGHT * 0.5)
+    
+    // delay reset
+    player.delayCounter = 0;
+  }
+  
+  // UPDATE for player
+  // RENDERING for player
+  if(player.delayCounter >= G.HOLD_DELAY) {
+    // yellow when hold
+    color("yellow");
+    box(player.pos.x, player.pos.y, player.size.x, player.size.y);
+  } else {
+    // Color renderer (cyan / red)
+    if(player.isCyan) {
+      color("cyan");
+      box(player.pos.x, player.pos.y, player.size.x, player.size.y);
+    } else {
+      color("red");
+      box(player.pos.x, player.pos.y, player.size.x, player.size.y);
+    }
+  }
+  
+  // UPDATE for TICK TOCK
+  // alternate boolean
+  if(isTick) {
+    isTick = false;
+  } else {
+    isTick = true;
   }
 }
 
