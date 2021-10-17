@@ -41,7 +41,7 @@ const G = {
   HITBOX_SIZE: 10,
   
   HOLD_DELAY : 20,
-  DEFAULT_SPEED: 2
+  DEFAULT_SPEED: 3
 }
 
 options = {
@@ -64,7 +64,8 @@ function update() {
     // HitBox Init
     hitbox = {
       pos: vec(G.WIDTH + G.HITBOX_SIZE, G.HEIGHT * 0.5),
-      size: vec(G.HITBOX_SIZE, G.HITBOX_SIZE)
+      size: vec(G.HITBOX_SIZE, G.HITBOX_SIZE),
+      isCyan: true
     }
     // Alternating Bool every update
     isTick = true;
@@ -119,7 +120,7 @@ function update() {
   hitbox.isSlowedDown = hitbox.pos.x >= G.WIDTH * 0.9 && hitbox.pos.x <= G.WIDTH * 0.95;
   // slowdown behavior
   if(hitbox.isSlowedDown) {
-    hitbox.pos.x -= G.DEFAULT_SPEED * 0.2;
+    hitbox.pos.x -= G.DEFAULT_SPEED * 0.1;
     hitbox.size.x = G.HITBOX_SIZE * 0.5
   } else {
     hitbox.pos.x -= G.DEFAULT_SPEED;
@@ -146,7 +147,12 @@ function update() {
   }
   // RENDERER 
   //renderer for hitbox
-  color("cyan") ;
+  if(hitbox.isCyan) {
+    color("cyan");
+  } else {
+    color("red");
+  }
+  
   box(hitbox.pos.x, hitbox.pos.y, hitbox.size.x, hitbox.size.y)
   
   // renderer for player
@@ -173,7 +179,12 @@ function update() {
   
   // Particles
   if(!hitbox.isSlowedDown) {
-    color("cyan");
+    if(hitbox.isCyan) {
+      color("cyan");
+    } else {
+      color("red");
+    }
+    
     particle(
         hitbox.pos.x + 2, // x coordinate
         hitbox.pos.y, // y coordinate
@@ -190,15 +201,14 @@ function update() {
     } else {
       color("red")
     }
-    color("red")
     particle(
-      player.pos.x, // x coordinate
+      player.pos.x + 5, // x coordinate
       player.pos.y, // y coordinate
       20, // The number of particles
-      2, // The speed of the particles
-      PI, // The emitting angle
-      PI  // The emitting width
-  );
+      3, // The speed of the particles
+      0, // The emitting angle
+      3  // The emitting width
+    );
   }
   
   // UPDATE for TICK TOCK
